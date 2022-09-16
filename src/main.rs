@@ -115,7 +115,7 @@ async fn main() {
    let channelpool = Arc::new(Mutex::new(Vec::<Channel>::new()));
    let mut increment = 1;
    while let Some(channel) = cursor.try_next().await.unwrap() {
-      println!("Channel: {}", channel.get_object_id("_id").unwrap());  
+      //println!("Channel: {}", channel.get_object_id("_id").unwrap());  
       let mut channel_name = || -> String {
          let mut name = String::from("Server ");
          name.push_str(increment.to_string().as_str());
@@ -178,12 +178,12 @@ async fn main() {
                   let last = chat.get_array("chat_msgs").unwrap().last().unwrap();
                   let message: Message = bson::from_bson(last.clone()).unwrap();
                   vec.push(message);
-                  println!("at else FINALE MESSAGES: {:#?}", vec);
+                  //println!("at else FINALE MESSAGES: {:#?}", vec);
                   tx_msgs.send(vec).unwrap();
                }  
             },
             "INTCHAT" => { 
-               println!("inting channelpool");
+               //println!("inting channelpool");
                let channel = rx_chnl.recv().unwrap();
                let channel_id = channel.id.as_str();
                let object_id = mongodb::bson::oid::ObjectId::from_str(channel_id).unwrap(); 
@@ -215,7 +215,7 @@ async fn main() {
                   split.next().unwrap()
                );
             
-               println!("{} {} {} {}", channel_id, user_id, name, msg);
+               //println!("{} {} {} {}", channel_id, user_id, name, msg);
                let msg_id = Uuid::new_v4().to_string();
                let now = Local::now().to_string();
                let timestamp = now.split('.').next().unwrap();
@@ -228,19 +228,19 @@ async fn main() {
                   } } }, 
                   None,
                   ).await.unwrap();
-               println!("Updated {} document", update_result.modified_count); 
+               //println!("Updated {} document", update_result.modified_count); 
 
                let chat = channels.find_one(
                   doc! {"_id" : object_id}, None).await.unwrap().unwrap();
 
                 //Deletes the oldest message from the DB
                 if chat.get_array("chat_msgs").unwrap().len() > CHAT_MAX_SIZE {
-                  println!("Deleting from DB");
+                  //println!("Deleting from DB");
                   channels.update_one( 
                      doc! {"_id" : object_id},
                      doc! {"$pop" : { "chat_msgs" : -1}}, None).await.unwrap();
                }
-               println!("DB chat len: {}", chat.get_array("chat_msgs").unwrap().len()); 
+               //println!("DB chat len: {}", chat.get_array("chat_msgs").unwrap().len()); 
 
                let mut chat_msgs: Vec<Message> = vec![];
                for chnl in channelpool2.lock().unwrap().iter_mut() {
@@ -261,10 +261,10 @@ async fn main() {
    });
    
    //MAIN THREAD
-   let main_listener = std::net::TcpListener::bind("127.0.0.1:8082").unwrap(); 
-   let updater_listener = std::net::TcpListener::bind("127.0.0.1:8083").unwrap();  
+   let main_listener = std::net::TcpListener::bind("188.166.39.246:8082").unwrap(); 
+   let updater_listener = std::net::TcpListener::bind("188.166.39.246:8083").unwrap();  
    let connectionpool = Arc::new(Mutex::new(Vec::new())); 
-   println!("CHANNELPOOL 1: {:#?}", channelpool);
+   //println!("CHANNELPOOL 1: {:#?}", channelpool);
    
    loop {
       let (main_stream, _) = main_listener.accept().unwrap();
@@ -318,7 +318,7 @@ async fn main() {
                   let mut channel = vec![0; 2048];
                   reader.read(&mut channel).unwrap();
                   let deserialized: Channel = bincode::deserialize(&channel).unwrap();
-                  println!("deserialized channel: {:#?}", deserialized);
+                  //println!("deserialized channel: {:#?}", deserialized);
                   tx_chnl.send(deserialized).unwrap();
                },
                "UPDATECHAT" => {
@@ -349,7 +349,7 @@ fn connection(
    channelpool: Arc<Mutex<Vec<Channel>>>,
    connectionpool: Arc<Mutex<Vec<Connection>>>) { 
 
-      let chat_listener = std::net::TcpListener::bind("127.0.0.1:8081"); 
+      let chat_listener = std::net::TcpListener::bind("188.166.39.246:8081"); 
       println!("  New join_channel_request {}", main_stream.peer_addr().unwrap());
       let (chat_stream, _) = chat_listener.unwrap().accept().unwrap();
       
@@ -369,7 +369,7 @@ fn connection(
       ); 
 
       //Check for duplicate user Id's 
-      println!("CONNECTIONPOOL BEFORE: {:#?}", connectionpool.lock().unwrap());
+      //println!("CONNECTIONPOOL BEFORE: {:#?}", connectionpool.lock().unwrap());
       let mut b = true;
       if !connectionpool.lock().unwrap().is_empty() {
          for conn in connectionpool.lock().unwrap().iter_mut() { 
@@ -420,15 +420,15 @@ fn connection(
       if !current_channel.chat_msgs.is_none() {
          let serialized = bincode::serialize(&current_channel.chat_msgs.as_ref().unwrap()).unwrap();
          //TODO huom. usize, buffer atm 1MB
-         println!("serialized usize: {}", serialized.capacity());
-         println!("Writing chat messages...");
+         //println!("serialized usize: {}", serialized.capacity());
+         //println!("Writing chat messages...");
          writer.write(&serialized).expect("Cant write to client");
          current_channel.chat_msgs.take();
-         println!("Chat messages sent!");
+         //println!("Chat messages sent!");
       }
 
       std::thread::spawn( move || {
-         println!("    Chat thread spawned");   
+         //println!("    Chat thread spawned");   
          let (tx, rx) = std::sync::mpsc::channel(); 
          //Updating thread; keeps track of the user len and chat len in the current channel.
          std::thread::spawn( move || { 
@@ -482,9 +482,9 @@ fn connection(
          let mut reader = std::io::BufReader::new(chat_stream);
          let mut line = String::new(); 
          loop {
-            println!("    At chat thread...");
+            //println!("    At chat thread...");
             let result = reader.read_line(&mut line).unwrap();
-            println!("        chat thread line: {}", line);
+            //println!("        chat thread line: {}", line);
 
             // tx2.send(line.clone()).unwrap();
             // file.write(line.as_bytes()).expect("Unable to write file");
@@ -526,7 +526,7 @@ fn send_channel_info(
 
       // if its true, it creates new, blank channel... 
       if pool_result() { 
-         println!("Löyty");
+         //println!("Löyty");
          let mut unserialized = Channel::new(
             String::new(),
             String::new(),
@@ -551,7 +551,7 @@ fn send_channel_info(
          writer.write(&serialized).expect("Cant write to client");
          //writer.flush().unwrap(); 
       } else { 
-         println!("Ei löytynyt");
+         //println!("Ei löytynyt");
          let buf = [0; 255];
          writer.write(&buf).expect("Cant write to client");
          //writer.flush().unwrap();  
@@ -582,9 +582,9 @@ fn update_channel_users(
                         }
                         let serialized = bincode::serialize(&vec).unwrap();
                         if !con.chat_stream.is_none() {
-                              println!("     SENDING TO: {:?}", con.main_stream);
+                              //println!("     SENDING TO: {:?}", con.main_stream);
                               con.main_stream.as_ref().unwrap().write(&serialized).expect("Cant write to client");
-                              println!("     SENt: {:?} content: {:#?}", con.main_stream, vec);
+                              //println!("     SENt: {:?} content: {:#?}", con.main_stream, vec);
                               con.main_stream.as_ref().unwrap().flush().unwrap(); 
                         }
                   }
@@ -625,7 +625,7 @@ fn disconnect(
                               .expect("Something wronk");
                            con.chat_stream.take();
                            users.remove(index);
-                           println!("channel users len: {}", users.len()); 
+                           //println!("channel users len: {}", users.len()); 
                            if users.len() == 0 {
                               channel.chat_msgs.take();
                            }
