@@ -24,6 +24,8 @@ use uuid::Uuid;
 use crossbeam::channel;
 
 const CHAT_MAX_SIZE: usize = 10;
+const ADDR: &str = "188.166.39.246";
+//const ADDR: &str = "127.0.0.1";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct User {
@@ -261,8 +263,8 @@ async fn main() {
    });
    
    //MAIN THREAD
-   let main_listener = std::net::TcpListener::bind("188.166.39.246:8082").unwrap(); 
-   let updater_listener = std::net::TcpListener::bind("188.166.39.246:8083").unwrap();  
+   let main_listener = std::net::TcpListener::bind(format!("{}:8082", ADDR).as_str()).unwrap(); 
+   let updater_listener = std::net::TcpListener::bind(format!("{}:8083", ADDR).as_str()).unwrap();  
    let connectionpool = Arc::new(Mutex::new(Vec::new())); 
    //println!("CHANNELPOOL 1: {:#?}", channelpool);
    
@@ -349,9 +351,9 @@ fn connection(
    channelpool: Arc<Mutex<Vec<Channel>>>,
    connectionpool: Arc<Mutex<Vec<Connection>>>) { 
 
-      let chat_listener = std::net::TcpListener::bind("188.166.39.246:8081"); 
+      let chat_listener = std::net::TcpListener::bind(format!("{}:8081", ADDR).as_str()).unwrap();
       println!("  New join_channel_request {}", main_stream.peer_addr().unwrap());
-      let (chat_stream, _) = chat_listener.unwrap().accept().unwrap();
+      let (chat_stream, _) = chat_listener.accept().unwrap();
       
       //channel = "channel-ID, username, user-ID"
       let channel = catch_signal(&main_stream);
@@ -447,6 +449,7 @@ fn connection(
                   },
                   Err(TryRecvError::Empty) => { 
                      for chnl in channelpool.lock().unwrap().iter_mut() {  
+                        //TODO current channeli kusettaa
                         if current_channel.id.contains(&chnl.id) { 
                            if current_users_len != chnl.users.as_ref().unwrap().len() {
                               signal_client(&updater_stream, String::from("UPDATEUSERS"));
@@ -454,10 +457,11 @@ fn connection(
                               break;
                            }
                            else if current_chat_len != chnl.chat_msgs.as_ref().unwrap().len() { 
-                              for users in &current_channel.users {
+                              println!("CURRENT CHANNEL: {:#?}", chnl);
+                              for users in chnl.users.as_ref() {
                                  for user in users {
                                     for con in connectionpool.lock().unwrap().iter() {
-                                       if user.updater_stream.to_string().contains(
+                                       if user.updater_stream.to_string().contains( 
                                           &con.updater_stream.as_ref().unwrap().peer_addr().unwrap().to_string()) {
                                              signal_client(&con.updater_stream.as_ref().unwrap(),
                                              String::from("UPDATECHAT"));
@@ -465,10 +469,10 @@ fn connection(
                                     }
                                  }
                               }
-                              current_chat_len = chnl.chat_msgs.as_ref().unwrap().len();
-                              if current_chat_len > CHAT_MAX_SIZE {
+                              if current_chat_len == CHAT_MAX_SIZE {
                                  chnl.chat_msgs.as_mut().unwrap().remove(0); 
                               }
+                              current_chat_len = chnl.chat_msgs.as_ref().unwrap().len();
                               break;
                            }
                         } 
@@ -651,7 +655,7 @@ fn catch_signal(stream: &TcpStream) -> String {
 
 fn signal_client(stream: &TcpStream, mut line: String) {
    let mut writer = std::io::BufWriter::new(stream);
-   //println!("signaling client: {}", &line);
+   println!("signaling client: {}", &line);
    line.push('\n');
    let line = line.as_bytes();
    writer.write(line).unwrap();
