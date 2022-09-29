@@ -14,6 +14,7 @@ bson = "2.3.0"
 futures = "0.3.21"
 bytes = "1.1.0"
 crossbeam = "0.8.2"
+cpal = "0.14.0"
 
 [dependencies.mongodb] 
 vesion = "2.3.0"
