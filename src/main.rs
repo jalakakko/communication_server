@@ -19,8 +19,8 @@ use uuid::Uuid;
 use crossbeam::channel;
 
 const CHAT_MAX_SIZE: usize = 10;
-//const ADDR: &str = "188.166.39.246";
-const ADDR: &str = "127.0.0.1";
+const ADDR: &str = "188.166.39.246";
+//const ADDR: &str = "127.0.0.1";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct User {
@@ -544,9 +544,9 @@ fn connection(
             
             let mut samples = vec![0; 4000];
             reader.read(&mut samples).unwrap();
-            //println!("ÄÄÄÄÄÄÄÄÄÄ: {} len: {}", samples[0].to_ascii_lowercase(), samples.len());
-            let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
-
+            //println!("ÄÄÄÄÄÄÄÄÄÄ: {:?}", samples);
+            let deserialized: Vec<[u8; 4]> = bincode::deserialize(&samples).unwrap();
+            
             for c in &connections {
                let serialized = bincode::serialize(&deserialized).unwrap();
                c.audio_tx_stream.as_ref().unwrap().write(&serialized).unwrap();
