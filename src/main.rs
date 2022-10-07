@@ -531,30 +531,32 @@ fn connection(
 
          //Chatting DEPRICATED 
          let mut reader = std::io::BufReader::new(chat_stream);
-         //let mut sample = vec![0;5]; 
          let mut line = String::new();
          loop {
             match rx_connections.try_recv() {
                Ok(key) => {
-                  println!("AT USER: {} KEY: {:#?}", user_clone.name, key);
+                  //println!("AT USER: {} KEY: {:#?}", user_clone.name, key);
                   connections = key;
                },
                Err(TryRecvError::Empty) => { },
                Err(TryRecvError::Disconnected) => panic!("Channel disconnected"),
            }
-            let result = reader.read_line(&mut line).unwrap();
-            //line.pop();
-            //println!("        chat thread line: {:#?}", line);
+            
+            let mut samples = vec![0; 4000];
+            reader.read(&mut samples).unwrap();
+            //println!("ÄÄÄÄÄÄÄÄÄÄ: {} len: {}", samples[0].to_ascii_lowercase(), samples.len());
+            let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
+
             for c in &connections {
-               let line_as_bytes = line.as_bytes();
-               c.audio_tx_stream.as_ref().unwrap().write(&line_as_bytes).unwrap();
+               let serialized = bincode::serialize(&deserialized).unwrap();
+               c.audio_tx_stream.as_ref().unwrap().write(&serialized).unwrap();
                //println!("c: {:#?}", c);
             }
             line.clear();
-            if result == 0 {
-               println!("     Exiting chat thread.. ");
-               break;
-            }
+            // if samples.len() == 0 { 
+            //    println!("     Exiting chat thread.. ");
+            //    break;
+            // }
          }
 
          //let result = reader.read(&mut sample).unwrap();
