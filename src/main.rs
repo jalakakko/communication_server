@@ -270,12 +270,10 @@ async fn main() {
    
    loop {
       let (main_stream, _) = main_listener.accept().unwrap();
-      println!("New connection from {}", main_stream.peer_addr().unwrap()); 
       let (updater_stream, _) = updater_listener.accept().unwrap();
-      println!("New connection from {}", main_stream.peer_addr().unwrap()); 
       let (chat_stream, _) = chat_listener.accept().unwrap();
-      println!("New connection from {}", main_stream.peer_addr().unwrap()); 
       let (audio_tx_stream, _) = audio_tx_listener.accept().unwrap();
+      println!("New connection from {}", main_stream.peer_addr().unwrap()); 
       
       let connectionpool = connectionpool.clone();  
       let channelpool = channelpool.clone(); 
@@ -485,9 +483,9 @@ fn connection(
                                  for user in users {
                                     for con in conpool_clone.lock().unwrap().iter() { 
                                        if user.updater_stream.to_string().contains( 
-                                          &con.updater_stream.as_ref().unwrap().peer_addr().unwrap().to_string()) 
-                                       && !con.chat_stream.as_ref().unwrap().peer_addr().unwrap().to_string().contains(
-                                          &chat_addr.to_string()) { 
+                                          &con.updater_stream.as_ref().unwrap().peer_addr().unwrap().to_string()) {
+                                       // && !con.chat_stream.as_ref().unwrap().peer_addr().unwrap().to_string().contains(
+                                       //    &chat_addr.to_string()) { 
                                           let c = Connection::new(
                                              con.id.clone(),
                                              None, 
@@ -531,7 +529,6 @@ fn connection(
 
          //Chatting DEPRICATED 
          let mut reader = std::io::BufReader::new(chat_stream);
-         let mut line = String::new();
          loop {
             match rx_connections.try_recv() {
                Ok(key) => {
@@ -545,14 +542,12 @@ fn connection(
             let mut samples = vec![0; 4000];
             reader.read(&mut samples).unwrap();
             //println!("ÄÄÄÄÄÄÄÄÄÄ: {:?}", samples);
-            let deserialized: Vec<[u8; 4]> = bincode::deserialize(&samples).unwrap();
-            
+            //let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
             for c in &connections {
-               let serialized = bincode::serialize(&deserialized).unwrap();
-               c.audio_tx_stream.as_ref().unwrap().write(&serialized).unwrap();
+               //let serialized = bincode::serialize(&deserialized).unwrap();
+               c.audio_tx_stream.as_ref().unwrap().write(&samples).unwrap();
                //println!("c: {:#?}", c);
             }
-            line.clear();
             // if samples.len() == 0 { 
             //    println!("     Exiting chat thread.. ");
             //    break;
