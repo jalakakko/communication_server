@@ -539,13 +539,14 @@ fn connection(
                Err(TryRecvError::Disconnected) => panic!("Channel disconnected"),
            }
             
-            let mut samples = vec![0; 4000];
+            let mut samples = vec![0; 3848];
             reader.read(&mut samples).unwrap();
+            //println!("{:?} samples len: {}", samples, samples.len());
             //println!("ÄÄÄÄÄÄÄÄÄÄ: {:?}", samples);
-            //let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
+            let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
+            let serialized = bincode::serialize(&deserialized).unwrap();
             for c in &connections {
-               //let serialized = bincode::serialize(&deserialized).unwrap();
-               c.audio_tx_stream.as_ref().unwrap().write(&samples).unwrap();
+               c.audio_tx_stream.as_ref().unwrap().write(&serialized).unwrap();
                //println!("c: {:#?}", c);
             }
             // if samples.len() == 0 { 
@@ -718,4 +719,3 @@ fn signal_client(stream: &TcpStream, mut line: String) {
    let line = line.as_bytes();
    writer.write(line).unwrap();
 }
-
