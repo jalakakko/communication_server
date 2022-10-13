@@ -19,8 +19,8 @@ use uuid::Uuid;
 use crossbeam::channel;
 
 const CHAT_MAX_SIZE: usize = 10;
-const ADDR: &str = "188.166.39.246";
-//const ADDR: &str = "127.0.0.1";
+// const ADDR: &str = "188.166.39.246";
+const ADDR: &str = "127.0.0.1";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct User {
@@ -539,14 +539,15 @@ fn connection(
                Err(TryRecvError::Disconnected) => panic!("Channel disconnected"),
            }
             
-            let mut samples = vec![0; 3848];
+            let mut samples = vec![0; 192008];
             reader.read(&mut samples).unwrap();
             //println!("{:?} samples len: {}", samples, samples.len());
-            //println!("ÄÄÄÄÄÄÄÄÄÄ: {:?}", samples);
-            let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
-            let serialized = bincode::serialize(&deserialized).unwrap();
+            
+            //let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
+            //println!("ÄÄÄÄÄÄÄÄÄÄ: {:#?}", deserialized);
+            // let serialized = bincode::serialize(&deserialized).unwrap();
             for c in &connections {
-               c.audio_tx_stream.as_ref().unwrap().write(&serialized).unwrap();
+               c.audio_tx_stream.as_ref().unwrap().write(&samples).unwrap();
                //println!("c: {:#?}", c);
             }
             // if samples.len() == 0 { 
