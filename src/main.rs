@@ -19,8 +19,8 @@ use uuid::Uuid;
 use crossbeam::channel;
 
 const CHAT_MAX_SIZE: usize = 10;
-// const ADDR: &str = "188.166.39.246";
-const ADDR: &str = "127.0.0.1";
+//const ADDR: &str = "188.166.39.246";
+//const ADDR: &str = "127.0.0.1";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct User {
@@ -528,7 +528,15 @@ fn connection(
          });
 
          //Chatting DEPRICATED 
-         let mut reader = std::io::BufReader::new(chat_stream);
+         let mut reader = std::io::BufReader::new(chat_stream.try_clone().expect("can't clone chat_stream"));
+
+         // let udp_soc = UdpSocket::bind(format!("{}:8085", ADDR).as_str()).unwrap();
+         // let mut buf = [0; 10];
+         // match udp_soc.recv(&mut buf) {
+         //    Ok(recv) => println!("received {recv} bytes {:?}", &buf[..recv]),
+         //    Err(e) => println!("recv function failed: {e:?}"),
+         // }
+
          loop {
             match rx_connections.try_recv() {
                Ok(key) => {
@@ -539,16 +547,19 @@ fn connection(
                Err(TryRecvError::Disconnected) => panic!("Channel disconnected"),
            }
             
-            let mut samples = vec![0; 192008];
+            let mut samples = vec![0; 4000];
             reader.read(&mut samples).unwrap();
             //println!("{:?} samples len: {}", samples, samples.len());
-            
-            //let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
-            //println!("ÄÄÄÄÄÄÄÄÄÄ: {:#?}", deserialized);
+            //println!("ÄÄÄÄÄÄÄÄÄÄ: {:?}", samples);
+            // let deserialized: Vec<f32> = bincode::deserialize(&samples).unwrap();
             // let serialized = bincode::serialize(&deserialized).unwrap();
-            for c in &connections {
-               c.audio_tx_stream.as_ref().unwrap().write(&samples).unwrap();
-               //println!("c: {:#?}", c);
+            for c in &connections { 
+               if !c.chat_stream.as_ref().unwrap().peer_addr().unwrap().to_string().contains(
+                  &chat_stream.peer_addr().unwrap().to_string()) {
+                     c.audio_tx_stream.as_ref().unwrap().write(&samples).unwrap();
+                     println!("USERS {} OWN ADDRESS: {}", user_clone.name, chat_stream.peer_addr().unwrap().to_string());
+                     println!("AT USER: {} c: {:#?}", user_clone.name, c.chat_stream);
+               }
             }
             // if samples.len() == 0 { 
             //    println!("     Exiting chat thread.. ");
